@@ -24,7 +24,7 @@ $ python -m venv venv
 ```
 
 ```console
-(venv)$ venv/Scripts/activate
+$ ./venv/Scripts/activate
 ```
 
 5. Install the modules listed in the `requirements.txt` file:
