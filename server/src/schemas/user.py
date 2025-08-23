@@ -48,7 +48,8 @@ class UserBase(BaseModel):
     firstName: str
     lastName: str
     email: EmailStr
-
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None
     class Config:
         schema_extra = {
             "example": {

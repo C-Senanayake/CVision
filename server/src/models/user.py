@@ -6,7 +6,7 @@ from pydantic import Field, EmailStr
 from pymongo import ReturnDocument
 
 from config.database import Database
-from schemas.user import User
+from schemas.user import User,UserBase
 
 class UserModel():
      collection: str = "users"
@@ -40,4 +40,10 @@ class UserModel():
           if user:
                user["id"] = str(user["_id"])
                return user
+          
+     def create_user(self, request: Request, user: UserBase):
+          new_user = self.get_collection(request).insert_one(user.dict())
+          
+          if new_user:
+               return new_user.inserted_id
      
