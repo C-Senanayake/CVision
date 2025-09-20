@@ -1,0 +1,37 @@
+name: cvision
+services:
+  nginx:
+    image: nginx:1.17
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - 8000:80
+    depends_on:
+      - frontend
+      - backend
+  frontend:
+    image: "node:22"
+    user: "node"
+    working_dir: /app
+    environment:
+      - NODE_ENV=development
+      - WDS_SOCKET_PORT=0
+    volumes:
+      - ./web/:/app
+    expose:
+      - "5173"
+    ports:
+      - "5173:5173"
+    command: "npm run dev"
+  backend:
+    image: cvision/backend
+    build: ./server
+    volumes:
+      - ./server:/app
+    expose:
+      - "8000"
+    ports:
+      - "8080:8000"
+    command: "python src/run.py"
+    environment:
+      - DEBUG=true
