@@ -17,7 +17,7 @@ class User(BaseModel):
     createdAt: Optional[datetime] = None
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "firstName": "Dinith",
                 "lastName": "Kumudika",
@@ -36,7 +36,7 @@ class UserLogin(BaseModel):
     password: str
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "email": "dinith1999@gmail.com",
                 "password": "Dinith@123"
@@ -51,7 +51,7 @@ class UserBase(BaseModel):
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "firstName": "Dinith",
                 "lastName": "Kumudika",
@@ -68,7 +68,7 @@ class UserCreate(UserBase):
     updatedAt: Optional[datetime] = None
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "firstName": "Dinith",
                 "lastName": "Kumudika",
