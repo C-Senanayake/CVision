@@ -29,16 +29,18 @@ const FileUpload: React.FC = () => {
   };
 
   return (
-    <Upload
-      customRequest={({ file, onSuccess }) => {
-        handleUpload(file as RcFile).then(() => onSuccess && onSuccess("ok"));
-      }}
-      beforeUpload={beforeUpload}
-      multiple={false}
-      showUploadList={true}
-    >
-      <Button icon={<UploadOutlined />}>Click to Upload PDF or ZIP</Button>
-    </Upload>
+    <div className="w-full h-full flex justify-center items-center">
+      <Upload
+        customRequest={({ file, onSuccess }) => {
+          handleUpload(file as RcFile).then(() => onSuccess && onSuccess("ok"));
+        }}
+        beforeUpload={beforeUpload}
+        multiple={false}
+        showUploadList={true}
+      >
+        <Button icon={<UploadOutlined />}>Click to Upload PDF or ZIP</Button>
+      </Upload>
+    </div>
   );
 };
 
