@@ -13,8 +13,8 @@ class GeminiPDFExtractor:
 
           base_dir = os.path.dirname(os.path.abspath(__file__)) 
           file_path = os.path.join(base_dir, f"../data/{pdf_file_name}")
-          print("Resolved path:", file_path)
-          print("Exists:", os.path.exists(file_path))
+      #     print("Resolved path:", file_path)
+      #     print("Exists:", os.path.exists(file_path))
           # Upload PDF to Gemini
           pdf_file = self.client.files.upload(file=file_path)
 
@@ -28,10 +28,10 @@ class GeminiPDFExtractor:
                     "email": "email address",
                     "phone": "phone number",
                     "address": "address",
-                    "linkedin": "LinkedIn URL", //If can extract the URL, exctarct it
-                    "website": "personal website", //If can extract the URL, exctarct it
-                    "github": "Github URL", //If can extract the URL, exctarct it
-                    "medium": "Medium URL" //If can extract the URL, exctarct it
+                    "linkedin": "LinkedIn URL", //If can extract the URL, extract it
+                    "website": "personal website", //If can extract the URL, extract it
+                    "github": "Github URL", //If can extract the URL, extract it
+                    "medium": "Medium URL" //If can extract the URL, extract it
               },
               "professional_summary": "Summary text",
               "work_experience": [
@@ -70,7 +70,7 @@ class GeminiPDFExtractor:
                         "name": "Project name",
                         "description": "Project description",
                         "technologies": ["Tech 1", "Tech 2"],
-                        "repository": "Repository URL",
+                        "repository": "Repository URL", //If the correct url for the repository given, extract it
                         "url": "Live URL"
                     }
               ],
@@ -101,7 +101,7 @@ class GeminiPDFExtractor:
                model="gemini-2.0-flash",
                contents=[prompt, pdf_file]
           )
-          print("TEXT:::",response.text)
+      #     print("TEXT:::",response.text)
           # Clean up the response to extract JSON
           response_text = response.text.strip()
 
@@ -111,7 +111,7 @@ class GeminiPDFExtractor:
 
           if json_start != -1 and json_end != -1:
               json_text = response_text[json_start:json_end]
-              print("JSON::",json_text)
+            #   print("JSON::",json_text)
               return json.loads(json_text)
           else:
               raise ValueError("Could not extract valid JSON from response")

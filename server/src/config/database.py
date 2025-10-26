@@ -11,7 +11,15 @@ class Database:
      
      def connect(self):
           try:
-               self.client = MongoClient(self.db_uri)
+               self.client = MongoClient(
+                    self.db_uri,
+                    serverSelectionTimeoutMS=5000,
+                    connectTimeoutMS=10000,
+                    socketTimeoutMS=10000,
+                    maxPoolSize=10,
+                    minPoolSize=1,
+                    maxIdleTimeMS=30000 # Close idle connections after 30s
+               )
                return self.client[self.db_name]
           except Exception as e:
                raise ConnectionError(f"Error connecting to database: {e}") from e
