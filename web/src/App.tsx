@@ -8,13 +8,14 @@ import {
     useLocation,
     Link,
 } from "react-router-dom";
-import FileUpload from './components/FileUpload';
+import Jobs from './components/Jobs';
+import CV from './components/CV';
 const { Content, Footer } = Layout;
 function App() {
   const items = [
     {
       key: '/',
-      label: 'Job Description',
+      label: 'Jobs',
     },
     {
       key: '/cv',
@@ -60,10 +61,10 @@ function MainLayout({ items }: { items: { key: string; label: string }[] }) {
           />
       </Layout.Header>
 
-      <Content style={{ padding: '0 48px' }}>
+      <Content>
         <Routes>
-          <Route path="/" element={<>Job Description Page</>} />
-          <Route path="/cv" element={<FileUpload/>} />
+          <Route path="/" element={<Jobs/>} />
+          <Route path="/cv" element={<CV/>} />
         </Routes>
       </Content>
 
