@@ -13,8 +13,7 @@ class Cv(BaseModel):
     division: Optional[str] = None
     resumeContent: Optional[object] = None
     comparisonResults: Optional[object] = None
-    githubMark: Optional[float] = 0.0
-    linkedInMark: Optional[float] = 0.0
+    markGenerated: Optional[bool] = False
     finalMark: Optional[float] = 0.0
     isDeleted: bool = False
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -54,9 +53,8 @@ class cvCreate(BaseModel):
     jobName: Optional[str] = None
     division: Optional[str] = None
     comparisonResults: Optional[object] = None
-    githubMark: Optional[float] = 0.0
-    linkedInMark: Optional[float] = 0.0
     finalMark: Optional[float] = 0.0
+    markGenerated: Optional[bool] = False
     isDeleted: bool = False
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updatedAt: Optional[datetime] = None

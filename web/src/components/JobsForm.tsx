@@ -6,12 +6,19 @@ import { useAtomValue } from "jotai";
 import { notificationApiAtom } from "../atoms";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
+import ReactQuill , { Quill } from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
+import "react-quill-new/dist/quill.core.css";
 
 type FieldType = {
   jobName: string;
   jobDescription: string;
   division: string
 };
+
+Quill.register("formats/list", true);
+Quill.register("formats/bullet", true);
+Quill.register("formats/blockquote", true);
 
 const JobsForm: React.FC<{setOpen?: (open:string | null)=>void}> = ({setOpen}) => {
   const [form] = Form.useForm();
@@ -22,7 +29,6 @@ const JobsForm: React.FC<{setOpen?: (open:string | null)=>void}> = ({setOpen}) =
   const onFinish: FormProps<FieldType>['onFinish'] = async (values) => {
     try {
       const res = await addJob(values);
-      console.log("RESSSSS::::",res);
       queryClient.invalidateQueries({queryKey: ['allJobs']});
       notification?.success({message:`Job added successfully`});
     } catch (error:AxiosError | any) {
@@ -33,12 +39,37 @@ const JobsForm: React.FC<{setOpen?: (open:string | null)=>void}> = ({setOpen}) =
     }
   };
   const { Option } = Select;
+  const modules = {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link", "blockquote", "code-block"],
+      ["clean"],
+    ],
+    clipboard: {
+      matchVisual: false,
+    },
+  };
+
+  const formats = [
+    "header",
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "list",
+    "bullet",
+    "link",
+    "blockquote",
+    "code-block",
+  ];
   return (
     <Form
       form={form}
       scrollToFirstError={{ behavior: 'instant', block: 'end', focus: true }}
       onFinish={onFinish}
-      labelCol={{ span: 4 }}
+      labelCol={{ span: 6 }}
       className="w-full"
     >
       <Form.Item
@@ -63,7 +94,13 @@ const JobsForm: React.FC<{setOpen?: (open:string | null)=>void}> = ({setOpen}) =
       <Form.Item name="jobDescription" label="Job Description"
         rules={[{ required: true, message: 'Please input a job description!' }]}
       >
-        <Input.TextArea rows={20} required/>
+        <ReactQuill
+          modules={modules}
+          formats={formats}
+          theme="snow"
+          placeholder="Type job description here..."
+          style={{ minHeight: "200px" }}
+        />
       </Form.Item>
       <div className="w-full p-2 flex flex-row justify-end">
         <Form.Item  className="m-0">

@@ -1,6 +1,5 @@
 import axios from "axios";
 import type { DataType } from "../components/Jobs";
-import type { CVDataType } from "../components/CV";
 
 const API_BASE_URL = "http://localhost:8000"; // FastAPI backend URL
 
@@ -33,6 +32,21 @@ export const fetchCvs = async (division?: string, jobName?: string, candidateNam
   }
 };
 
+export const fetchCvPdf = async (id?: string, cvName?: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api_v1/cv/get_pdf`, {
+      params: {id, cvName},
+      responseType: 'blob'
+    });
+    const file = new Blob([response.data], { type: 'application/pdf' });
+    const fileURL = URL.createObjectURL(file);
+    return fileURL;
+  } catch (error) {
+    console.error("Add job failed", error);
+    throw error;
+  }
+};
+
 export const deleteCv = async (id?: string) => {
   try {
     const response = await axios.delete(`${API_BASE_URL}/api_v1/cv/delete_cv`, {
@@ -46,13 +60,24 @@ export const deleteCv = async (id?: string) => {
   }
 };
 
-export const updateCv = async (cvData: CVDataType | null) => {
+export const updateCv = async (cvData: object) => {
   try {
     const response = await axios.put(`${API_BASE_URL}/api_v1/cv/update_cv`, cvData);
     
     return response.data;
   } catch (error) {
     console.error("CV update failed", error);
+    throw error;
+  }
+};
+
+export const generateMark = async (data: object[]) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api_v1/cv/generate_mark`, data);
+    
+    return response.data;
+  } catch (error) {
+    console.error("Job update failed", error);
     throw error;
   }
 };

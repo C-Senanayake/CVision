@@ -106,7 +106,7 @@ const JobsFormCriteria: React.FC<FormEditProps> = ({setOpen, editData, setEditDa
                 rules={[{ required: true, message: 'Missing percentage' }]}
                 style={{ flex: '0 0 25%', marginBottom: 0 }}
               >
-                <InputNumber style={{ width: '100%' }} min={0} max={1} step={0.1} placeholder="Criteria Percentage" onChange={calculateTotal}/>
+                <InputNumber style={{ width: '100%' }} min={0} max={100} step={1} placeholder="Criteria Percentage" onChange={calculateTotal}/>
               </Form.Item>
               <MinusCircleOutlined onClick={() => {
                 remove(name)
@@ -117,8 +117,8 @@ const JobsFormCriteria: React.FC<FormEditProps> = ({setOpen, editData, setEditDa
           <div style={{ 
             marginBottom: 16, 
             padding: '8px 12px', 
-            backgroundColor: totalPercentage > 1 ? '#fff2f0' : '#f6ffed',
-            border: `1px solid ${totalPercentage > 1 ? '#ffccc7' : '#b7eb8f'}`,
+            backgroundColor: totalPercentage > 100 ? '#fff2f0' : '#f6ffed',
+            border: `1px solid ${totalPercentage > 100 ? '#ffccc7' : '#b7eb8f'}`,
             borderRadius: '4px',
             display: 'flex',
             justifyContent: 'space-between',
@@ -127,10 +127,10 @@ const JobsFormCriteria: React.FC<FormEditProps> = ({setOpen, editData, setEditDa
             <span style={{ fontWeight: 'bold' }}>Total Percentage:</span>
             <span style={{ 
               fontWeight: 'bold', 
-              color: totalPercentage > 1 ? '#cf1322' : '#52c41a',
+              color: totalPercentage > 100 ? '#cf1322' : '#52c41a',
               fontSize: '16px'
             }}>
-              {(totalPercentage * 100).toFixed(1)}%
+              {(totalPercentage).toFixed(1)}%
             </span>
           </div>
           <Form.Item>

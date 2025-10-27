@@ -1,11 +1,14 @@
 import React from "react";
-import { Button, Table, Tag, Form, Input, Drawer, Tooltip } from "antd";
-import { DeleteFilled, EditFilled } from "@ant-design/icons";
-import { fetchCvs, deleteCv } from "../api";
+import { Button, Table, Tag, Form, Input, Drawer, Tooltip, Spin } from "antd";
+import { DeleteFilled, EditFilled, EyeFilled } from "@ant-design/icons";
+import { fetchCvs, deleteCv, generateMark } from "../api";
 import type { FormProps, TableProps } from 'antd';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import CVFormEdit from "./CVFormEdit";
 import CVForm from "./CVForm";
+import { notificationApiAtom } from "../atoms";
+import { useAtomValue } from "jotai";
+import CVView from "./CVView";
 
 export interface CVDataType {
   key?: string;
@@ -13,7 +16,16 @@ export interface CVDataType {
   jobName: string;
   division: string;
   createdAt?: string;
-  updatedAt?: string;
+  cvName?: string;
+  jobId?: string;
+  markGenerated?: boolean;
+  comparisonResults?: {[key: string]: {
+    mark: number;
+    mark_fraction: string;
+    explanation: string;
+  }};
+  finalMark: number;
+  updatedAt: string;
   id: string | undefined;
 }
 
@@ -25,6 +37,8 @@ const CV: React.FC = () => {
   const [open, setOpen] = React.useState<string | null>(null);
   const [ editData, setEditData] = React.useState<CVDataType | null>(null)
   const [ selectedRows, setSelectedRows] = React.useState<CVDataType[]>([])
+  const [ loding, setLoading] = React.useState<boolean>(false)
+  const notification = useAtomValue(notificationApiAtom);
   const queryClient = useQueryClient();
   const showDrawer = () => {
     setOpen('add');
@@ -42,6 +56,22 @@ const CV: React.FC = () => {
           return res.cvs
       }
   })
+
+  const generateRowMarks = async() => {
+    try {
+      setLoading(true)
+      const res = await generateMark(selectedRows)
+      queryClient.invalidateQueries({queryKey: ['allCVs']});
+      setSelectedRows([])
+      notification?.success({message:"Marks generated successfully"})
+    } catch (error) {
+      notification?.error({message:"Marks generation failed"})
+    }finally{
+      setLoading(false)
+    }
+    
+    // return res.cvs
+  }
 
   const columns: TableProps<CVDataType>['columns'] = [
     {
@@ -138,11 +168,37 @@ const CV: React.FC = () => {
       },
     },
     {
+      title: 'Generated',
+      dataIndex: 'markGenerated',
+      key: 'markGenerated',
+      render: (markGenerated:boolean) => (markGenerated ? <Tag color="green">Yes</Tag> : <Tag color="yellow">No</Tag>),
+      sorter: (a, b) => (a?.markGenerated === b?.markGenerated ? 0 : a?.markGenerated ? -1 : 1)
+    },
+    {
+      title: 'Mark',
+      dataIndex: 'finalMark',
+      key: 'finalMark',
+      render: (text) => (text),
+      sorter: (a, b) => a.finalMark - b.finalMark
+    },
+    {
       title: 'Action',
       key: 'action',
       render: (_, record) => (
         <>
-          <Tooltip title="Delete Job">
+          <Tooltip title={record.markGenerated ? "View Generated" : "Generation Pending"}>
+              <Button
+                type="link"
+                icon={<EyeFilled />}
+                disabled={!record.markGenerated}
+                // loading={loadings[3]}
+                onClick={() => {
+                  setOpen("view")
+                  setEditData(record)
+                }}
+              />
+          </Tooltip>
+          <Tooltip title="Edit CV">
               <Button
                 type="link"
                 icon={<EditFilled />}
@@ -153,7 +209,7 @@ const CV: React.FC = () => {
                 }}
               />
           </Tooltip>
-          <Tooltip title="Delete Job">
+          <Tooltip title="Delete CV">
               <Button
                 type="link"
                 icon={<DeleteFilled />}
@@ -176,6 +232,7 @@ const CV: React.FC = () => {
 
   return (
     <div className="w-full h-full flex flex-col justify-center items-center">
+      {loding && <div className="fixed top-0 left-0 w-[100vw] h-[100vh] bg-black bg-opacity-15 z-20 flex justify-center items-center"><Spin size="large"/></div>}
       <div className="w-full p-2 flex flex-row justify-between">
         <div className="pb-2 flex flex-row justify-start">
           <Form
@@ -200,7 +257,10 @@ const CV: React.FC = () => {
             </Form.Item>
           </Form>
         </div>
-        <Button onClick={showDrawer}>Add New</Button>
+        <div className="flex gap-2">
+          <Button onClick={generateRowMarks} disabled={selectedRows.length === 0}>Generate</Button>
+          <Button onClick={showDrawer}>Add New</Button>
+        </div>
       </div>
       <Table<CVDataType> 
         className="w-full h-full overflow-y-auto overflow-x-hidden" 
@@ -210,8 +270,7 @@ const CV: React.FC = () => {
         rowKey="id"
         rowSelection={{ 
           type: 'checkbox', 
-          onChange: (selectedRowKeys: React.Key[], selectedRows: CVDataType[]) => {
-            console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
+          onChange: (_selectedRowKeys: React.Key[], selectedRows: CVDataType[]) => {
             setSelectedRows(selectedRows)
           },
           getCheckboxProps: (record: CVDataType) => ({
@@ -238,6 +297,16 @@ const CV: React.FC = () => {
         width={720}
       >
         <CVFormEdit setOpen={setOpen} editData={editData} setEditData={setEditData}/>
+      </Drawer>
+      <Drawer
+        title="View"
+        closable={{ 'aria-label': 'Close Button' }}
+        onClose={onClose}
+        open={open==='view'}
+        className="p-0"
+        width={"100%"}
+      >
+        <CVView data={editData}/>
       </Drawer>
     </div>
   );

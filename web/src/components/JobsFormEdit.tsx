@@ -7,6 +7,9 @@ import { notificationApiAtom } from "../atoms";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import type { DataType } from "./Jobs";
+import ReactQuill , { Quill } from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
+import "react-quill-new/dist/quill.core.css";
 
 type FieldType = {
   jobName: string;
@@ -19,6 +22,10 @@ interface FormEditProps{
   editData: DataType | null
   setEditData: (data:DataType | null)=>void
 }
+
+Quill.register("formats/list", true);
+Quill.register("formats/bullet", true);
+Quill.register("formats/blockquote", true);
 
 const JobsFormEdit: React.FC<FormEditProps> = ({setOpen, editData, setEditData}) => {
   const [form] = Form.useForm();
@@ -44,12 +51,37 @@ const JobsFormEdit: React.FC<FormEditProps> = ({setOpen, editData, setEditData})
     }
   };
   const { Option } = Select;
+  const modules = {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link", "blockquote", "code-block"],
+      ["clean"],
+    ],
+    clipboard: {
+      matchVisual: false,
+    },
+  };
+
+  const formats = [
+    "header",
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "list",
+    "bullet",
+    "link",
+    "blockquote",
+    "code-block",
+  ];
   return (
     <Form
       form={form}
       scrollToFirstError={{ behavior: 'instant', block: 'end', focus: true }}
       onFinish={onFinish}
-      labelCol={{ span: 4 }}
+      labelCol={{ span: 6 }}
       className="w-full mt-8"
     >
       <Form.Item
@@ -76,7 +108,13 @@ const JobsFormEdit: React.FC<FormEditProps> = ({setOpen, editData, setEditData})
       <Form.Item name="jobDescription" label="Job Description" initialValue={editData?.jobDescription}
         rules={[{ required: true, message: 'Please input a job description!' }]}
       >
-        <Input.TextArea rows={20} required />
+        <ReactQuill
+          modules={modules}
+          formats={formats}
+          theme="snow"
+          placeholder="Type job description here..."
+          style={{ minHeight: "200px" }}
+        />
       </Form.Item>
       <div className="w-full p-2 flex flex-row justify-end">
         <Form.Item  className="m-0">
