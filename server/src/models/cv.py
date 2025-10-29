@@ -59,4 +59,66 @@ class CvModel():
                return updated_cv
           else:
                return False
+
+
+# Standalone functions for GitHub integration (no request dependency)
+class CV:
+     """Static methods for CV operations without Request dependency"""
+     
+     @staticmethod
+     def get_cv_by_id(cv_id: str) -> Optional[Dict[str, Any]]:
+          """
+          Get CV document by ID
+          
+          Args:
+               cv_id: MongoDB ObjectId as string
+               
+          Returns:
+               CV document or None
+          """
+          db = Database.get_db()
+          cv = db["cvs"].find_one({"_id": ObjectId(cv_id)})
+          return cv
+     
+     @staticmethod
+     def update_github_data(cv_id: str, github_data: Dict[str, Any]) -> bool:
+          """
+          Update CV document with GitHub enrichment data
+          
+          Args:
+               cv_id: MongoDB ObjectId as string
+               github_data: GitHub data dictionary
+               
+          Returns:
+               True if successful, False otherwise
+          """
+          db = Database.get_db()
+          result = db["cvs"].update_one(
+               {"_id": ObjectId(cv_id)},
+               {
+                    "$set": {
+                         "githubData": github_data,
+                         "updatedAt": datetime.now(timezone.utc)
+                    }
+               }
+          )
+          return result.modified_count > 0 or result.matched_count > 0
+     
+     @staticmethod
+     def get_github_data(cv_id: str) -> Optional[Dict[str, Any]]:
+          """
+          Get GitHub data from CV document
+          
+          Args:
+               cv_id: MongoDB ObjectId as string
+               
+          Returns:
+               GitHub data dictionary or None
+          """
+          db = Database.get_db()
+          cv = db["cvs"].find_one(
+               {"_id": ObjectId(cv_id)},
+               {"githubData": 1}
+          )
+          return cv.get("githubData") if cv else None
      
