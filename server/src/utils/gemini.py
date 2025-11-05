@@ -1,12 +1,12 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 load_dotenv()
 
 class GeminiPDFExtractor:
     def __init__(self):
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
     async def extract_and_structure_pdf(self, pdf_file_name:str) -> dict:
           """Extract and structure PDF content into JSON"""
@@ -16,7 +16,7 @@ class GeminiPDFExtractor:
       #     print("Resolved path:", file_path)
       #     print("Exists:", os.path.exists(file_path))
           # Upload PDF to Gemini
-          pdf_file = genai.upload_file(file_path)
+          pdf_file = self.client.files.upload(file=file_path)
 
           prompt = """
           Analyze this PDF CV/Resume and extract structured data in JSON format.
@@ -97,8 +97,10 @@ class GeminiPDFExtractor:
           Extract only information that is explicitly present in the CV. Use empty strings or arrays for missing information.
           """
         
-          model = genai.GenerativeModel("gemini-2.0-flash")
-          response = model.generate_content([prompt, pdf_file])
+          response = self.client.models.generate_content(
+               model="gemini-2.0-flash",
+               contents=[prompt, pdf_file]
+          )
       #     print("TEXT:::",response.text)
           # Clean up the response to extract JSON
           response_text = response.text.strip()
@@ -228,8 +230,10 @@ GitHub Profile Analysis:
             Return the results strictly in JSON format, including each criterion with its assigned mark and a brief explanation.
             """
         # print("PROMPT::", prompt_template)
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(prompt_template)
+        response = self.client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt_template
+        )
         # Clean up the response to extract JSON
         response_text = response.text.strip()
         # Find JSON in the response
