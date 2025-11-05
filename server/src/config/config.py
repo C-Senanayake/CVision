@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 from dotenv import dotenv_values
 
-env = dotenv_values("../.env")
+env = dotenv_values("./.env")
 
 class CommonSettings(BaseSettings):
      API_VERSION_STR: str = "/api_v1"
@@ -30,7 +30,16 @@ class DatabaseSettings(BaseSettings):
      class Config:
           case_sensitive = True
 
-class Settings(CommonSettings, ServerSettings, DatabaseSettings):
+class GitHubSettings(BaseSettings):
+     GITHUB_API_TOKEN: str = env.get('GITHUB_API_TOKEN', '')
+     GITHUB_API_VERSION: str = "2022-11-28"
+     GITHUB_TIMEOUT: int = 10
+     GITHUB_CACHE_TTL: int = 86400  # 24 hours in seconds
+     
+     class Config:
+          case_sensitive = True
+
+class Settings(CommonSettings, ServerSettings, DatabaseSettings, GitHubSettings):
      pass
 
 

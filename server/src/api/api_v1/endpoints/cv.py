@@ -4,6 +4,7 @@ import shutil
 import zipfile
 import os
 from utils.gemini import GeminiPDFExtractor
+from utils.github_extractor import GitHubExtractor
 from bson.objectid import ObjectId
 from schemas.cv import Cv,cvBase,cvCreate
 from models.cv import CvModel
@@ -13,6 +14,10 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, EmailStr, Field
 from bs4 import BeautifulSoup
 from fastapi.responses import FileResponse
+from config.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 cv_model = CvModel()
@@ -23,6 +28,50 @@ file_path = os.path.join(base_dir, f"../../../data")
 
 UPLOAD_DIR = Path(file_path)
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+async def enrich_cv_with_github(cv_id: str, resume_content: dict) -> Optional[dict]:
+    """
+    Automatically enrich CV with GitHub data if GitHub URL is present
+    
+    Args:
+        cv_id: MongoDB ObjectId of CV
+        resume_content: Extracted resume content
+        
+    Returns:
+        GitHub data dictionary or None
+    """
+    try:
+        # Extract GitHub URL from resume
+        personal_info = resume_content.get("personal_info", {})
+        github_url = personal_info.get("github", "")
+        
+        if not github_url:
+            logger.info(f"No GitHub URL found for CV {cv_id}")
+            return None
+        
+        # Extract username
+        extractor = GitHubExtractor(token=settings.GITHUB_API_TOKEN)
+        username = GitHubExtractor.extract_username_from_url(github_url)
+        
+        if not username:
+            logger.warning(f"Could not extract username from GitHub URL: {github_url}")
+            return None
+        
+        logger.info(f"Fetching GitHub data for username: {username}")
+        
+        # Fetch complete GitHub profile
+        github_data = await extractor.get_complete_profile(username)
+        
+        if github_data["fetch_status"] == "success":
+            logger.info(f"Successfully fetched GitHub data for {username}")
+        else:
+            logger.warning(f"GitHub enrichment failed for {username}: {github_data.get('error')}")
+        
+        return github_data
+        
+    except Exception as e:
+        logger.error(f"Error enriching CV {cv_id} with GitHub data: {str(e)}")
+        return None
 
 @router.post("/upload_cv")
 async def upload_cv(
@@ -42,8 +91,22 @@ async def upload_cv(
                 file_path = UPLOAD_DIR / f"{new_pdf_id}_{file.filename}"
                 with open(file_path, "wb") as f:
                     shutil.copyfileobj(file.file, f)
+                
+                # Extract CV content
                 extract = await gemini_extractor.extract_and_structure_pdf(f"{new_pdf_id}_{file.filename}")
-                update_pdf = cv_model.update(request, "_id", ObjectId(new_pdf_id), {"candidateName": extract.get("personal_info").get("name") or "","resumeContent": extract})
+                
+                # Automatically enrich with GitHub data
+                github_data = await enrich_cv_with_github(str(new_pdf_id), extract)
+                
+                # Update CV with extracted content and GitHub data
+                update_data = {
+                    "candidateName": extract.get("personal_info", {}).get("name") or "",
+                    "resumeContent": extract
+                }
+                if github_data:
+                    update_data["githubData"] = github_data
+                
+                update_pdf = cv_model.update(request, "_id", ObjectId(new_pdf_id), update_data)
 
             elif file.filename.endswith(".zip"):
                 # Save ZIP temporarily
@@ -62,8 +125,22 @@ async def upload_cv(
 
                             with zip_ref.open(member) as source, open(new_file_path, "wb") as target:
                                 shutil.copyfileobj(source, target)
+                            
+                            # Extract CV content
                             extract = await gemini_extractor.extract_and_structure_pdf(new_filename)
-                            update_pdf = cv_model.update(request, "_id", ObjectId(new_pdf_id), {"candidateName": extract.get("personal_info").get("name") or "","resumeContent": extract})
+                            
+                            # Automatically enrich with GitHub data
+                            github_data = await enrich_cv_with_github(str(new_pdf_id), extract)
+                            
+                            # Update CV with extracted content and GitHub data
+                            update_data = {
+                                "candidateName": extract.get("personal_info", {}).get("name") or "",
+                                "resumeContent": extract
+                            }
+                            if github_data:
+                                update_data["githubData"] = github_data
+                            
+                            update_pdf = cv_model.update(request, "_id", ObjectId(new_pdf_id), update_data)
 
                 os.remove(zip_path)
 
@@ -133,7 +210,16 @@ async def generate_mark(request: Request, data: List[dict] = Body(...)):
             soup = BeautifulSoup(job_data["jobDescription"], "html.parser")
             job_data["jobDescription"] = soup.get_text(separator="\n")
             gemini_extractor = GeminiPDFExtractor()
-            generated_marks = await gemini_extractor.generate_marks(cv.get("resumeContent"), job_data)
+            
+            # Get GitHub data if available
+            github_data = cv.get("githubData")
+            
+            # Generate marks with GitHub data
+            generated_marks = await gemini_extractor.generate_marks(
+                cv.get("resumeContent"), 
+                job_data,
+                github_data
+            )
             total_mark = sum(item["mark"] for item in generated_marks.values())
             updated_cv = cv_model.update(request, "_id", ObjectId(cv.get("id")), {"comparisonResults": generated_marks, "markGenerated": True, "finalMark": total_mark})
             if updated_cv:
