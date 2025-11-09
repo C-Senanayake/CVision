@@ -142,3 +142,13 @@ export const updateJobCriteria = async (jobData: {id: string | undefined, criter
     throw error;
   }
 };
+
+export const fetchGitHubData = async (id: string | undefined) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api_v1/cv/fetch_github`, {params: {id}});
+    return response.data;
+  } catch (error) {
+    console.error("Fetch Github data failed", error);
+    throw error;
+  }
+}

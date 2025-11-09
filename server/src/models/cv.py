@@ -59,6 +59,13 @@ class CvModel():
                return updated_cv
           else:
                return False
+          
+     def get_github_data(self, request: Request, cv_id: str) -> Optional[Dict[str, Any]]:
+          cv = self.get_collection(request).find_one(
+               {"_id": ObjectId(cv_id)},
+               {"githubData": 1}
+          )
+          return cv.get("githubData") if cv else None
 
 
 # Standalone functions for GitHub integration (no request dependency)
@@ -103,22 +110,5 @@ class CV:
                }
           )
           return result.modified_count > 0 or result.matched_count > 0
-     
-     @staticmethod
-     def get_github_data(cv_id: str) -> Optional[Dict[str, Any]]:
-          """
-          Get GitHub data from CV document
-          
-          Args:
-               cv_id: MongoDB ObjectId as string
-               
-          Returns:
-               GitHub data dictionary or None
-          """
-          db = Database.get_db()
-          cv = db["cvs"].find_one(
-               {"_id": ObjectId(cv_id)},
-               {"githubData": 1}
-          )
-          return cv.get("githubData") if cv else None
+
      
