@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 from fastapi.responses import FileResponse
 from config.config import settings
 import logging
+from utils.firebase_storage import firebase_storage
 
 logger = logging.getLogger(__name__)
 
@@ -92,21 +93,26 @@ async def upload_cv(
                 with open(file_path, "wb") as f:
                     shutil.copyfileobj(file.file, f)
                 
+                result = firebase_storage.upload_file(
+                    file_path=file_path,
+                    storage_folder="cvs"
+                )
+                print("CV::",result)
                 # Extract CV content
-                extract = await gemini_extractor.extract_and_structure_pdf(f"{new_pdf_id}_{file.filename}")
+                # extract = await gemini_extractor.extract_and_structure_pdf(f"{new_pdf_id}_{file.filename}")
                 
-                # Automatically enrich with GitHub data
-                github_data = await enrich_cv_with_github(str(new_pdf_id), extract)
+                # # Automatically enrich with GitHub data
+                # github_data = await enrich_cv_with_github(str(new_pdf_id), extract)
                 
-                # Update CV with extracted content and GitHub data
-                update_data = {
-                    "candidateName": extract.get("personal_info", {}).get("name") or "",
-                    "resumeContent": extract
-                }
-                if github_data:
-                    update_data["githubData"] = github_data
+                # # Update CV with extracted content and GitHub data
+                # update_data = {
+                #     "candidateName": extract.get("personal_info", {}).get("name") or "",
+                #     "resumeContent": extract
+                # }
+                # if github_data:
+                #     update_data["githubData"] = github_data
                 
-                update_pdf = cv_model.update(request, "_id", ObjectId(new_pdf_id), update_data)
+                # update_pdf = cv_model.update(request, "_id", ObjectId(new_pdf_id), update_data)
 
             elif file.filename.endswith(".zip"):
                 # Save ZIP temporarily
