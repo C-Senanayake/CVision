@@ -1,7 +1,10 @@
 from pydantic_settings import BaseSettings
 from dotenv import dotenv_values
+import os
 
-env = dotenv_values("./.env")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(BASE_DIR, "../../.env")
+env = dotenv_values(env_path)
 
 class CommonSettings(BaseSettings):
      API_VERSION_STR: str = "/api_v1"

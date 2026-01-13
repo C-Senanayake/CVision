@@ -15,6 +15,7 @@ class Cv(BaseModel):
     comparisonResults: Optional[object] = None
     markGenerated: Optional[bool] = False
     finalMark: Optional[float] = 0.0
+    selectedForInterview: Optional[bool] = False
     isDeleted: bool = False
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updatedAt: Optional[datetime] = None
@@ -54,6 +55,7 @@ class cvCreate(BaseModel):
     division: Optional[str] = None
     comparisonResults: Optional[object] = None
     finalMark: Optional[float] = 0.0
+    selectedForInterview: Optional[bool] = False
     markGenerated: Optional[bool] = False
     isDeleted: bool = False
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -17,6 +17,7 @@
     "axios": "^1.12.2",
     "jotai": "^2.15.0",
     "jotai-tanstack-query": "^0.11.0",
+    "mammoth": "^1.11.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-quill-new": "^3.6.0",

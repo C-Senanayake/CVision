@@ -87,7 +87,7 @@ async def upload_cv(
     try:
         for file in files:
             if file.filename.endswith(".pdf"):
-                new_pdf_id = cv_model.create_cv(request, {"cvName":file.filename, "division": division, "jobName": jobName, "jobId": id, "isDeleted": False, "comparisonResults": {}, "markGenerated": False, "finalMark": 0.0, "createdAt": datetime.now(timezone.utc)})
+                new_pdf_id = cv_model.create_cv(request, {"cvName":file.filename, "division": division, "jobName": jobName, "jobId": id, "selectedForInterview": False, "isDeleted": False, "comparisonResults": {}, "markGenerated": False, "finalMark": 0.0, "createdAt": datetime.now(timezone.utc)})
                 file_path = UPLOAD_DIR / f"{new_pdf_id}_{file.filename}"
                 with open(file_path, "wb") as f:
                     shutil.copyfileobj(file.file, f)
@@ -221,7 +221,7 @@ async def generate_mark(request: Request, data: List[dict] = Body(...)):
                 github_data
             )
             total_mark = sum(item["mark"] for item in generated_marks.values())
-            updated_cv = cv_model.update(request, "_id", ObjectId(cv.get("id")), {"comparisonResults": generated_marks, "markGenerated": True, "finalMark": total_mark})
+            updated_cv = cv_model.update(request, "_id", ObjectId(cv.get("id")), {"comparisonResults": generated_marks, "markGenerated": True, "finalMark": total_mark, "selectedForInterview": total_mark >= job_data['selectionMark']})
             if updated_cv:
                 return 
     except Exception as e:
