@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Table, Tag, Form, Input, Drawer, Tooltip, Spin } from "antd";
+import { Button, Table, Tag, Form, Input, Drawer, Tooltip, Spin, Radio, Space } from "antd";
 import { DeleteFilled, EditFilled, EyeFilled } from "@ant-design/icons";
 import { fetchCvs, deleteCv, generateMark } from "../api";
 import type { FormProps, TableProps } from 'antd';
@@ -19,6 +19,7 @@ export interface CVDataType {
   cvName?: string;
   jobId?: string;
   markGenerated?: boolean;
+  selectedForInterview?: boolean,
   comparisonResults?: {[key: string]: {
     mark: number;
     mark_fraction: string;
@@ -68,6 +69,7 @@ const CV: React.FC = () => {
       notification?.error({message:"Marks generation failed"})
     }finally{
       setLoading(false)
+      setSelectedRows([])
     }
     
     // return res.cvs
@@ -172,7 +174,40 @@ const CV: React.FC = () => {
       dataIndex: 'markGenerated',
       key: 'markGenerated',
       render: (markGenerated:boolean) => (markGenerated ? <Tag color="green">Yes</Tag> : <Tag color="yellow">No</Tag>),
-      sorter: (a, b) => (a?.markGenerated === b?.markGenerated ? 0 : a?.markGenerated ? -1 : 1)
+      sorter: (a, b) => (a?.markGenerated === b?.markGenerated ? 0 : a?.markGenerated ? -1 : 1),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+          <div style={{ padding: 8 }} className="flex flex-col">
+            <Radio.Group
+                value={selectedKeys[0]}
+                onChange={(e:any) => setSelectedKeys([e.target.value])}
+            >
+              <Space direction="vertical">
+                <Radio value={true}>Yes</Radio>
+                <Radio value={false}>No</Radio>
+              </Space>
+            </Radio.Group>
+
+            <Space style={{ marginTop: 8 }}>
+              <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => confirm()}
+              >
+                Apply
+              </Button>
+              <Button
+                  size="small"
+                  onClick={() => {
+                    clearFilters?.();
+                    confirm();
+                  }}
+              >
+                Reset
+              </Button>
+            </Space>
+          </div>
+      ),
+      onFilter: (value, record) => record?.markGenerated === value || (record?.markGenerated === undefined && value === false),
     },
     {
       title: 'Mark',
@@ -180,6 +215,46 @@ const CV: React.FC = () => {
       key: 'finalMark',
       render: (text) => (text),
       sorter: (a, b) => a.finalMark - b.finalMark
+    },
+    {
+      title: 'Selected',
+      dataIndex: 'selectedForInterview',
+      key: 'selectedForInterview',
+      render: (selectedForInterview:boolean) => (selectedForInterview ? <Tag color="green">Yes</Tag> : <Tag color="yellow">No</Tag>),
+      sorter: (a, b) => (a?.selectedForInterview === b?.selectedForInterview ? 0 : a?.selectedForInterview ? -1 : 1),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+          <div style={{ padding: 8 }} className="flex flex-col">
+            <Radio.Group
+                value={selectedKeys[0]}
+                onChange={(e:any) => setSelectedKeys([e.target.value])}
+            >
+              <Space direction="vertical">
+                <Radio value={true}>Yes</Radio>
+                <Radio value={false}>No</Radio>
+              </Space>
+            </Radio.Group>
+
+            <Space style={{ marginTop: 8 }}>
+              <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => confirm()}
+              >
+                Apply
+              </Button>
+              <Button
+                  size="small"
+                  onClick={() => {
+                    clearFilters?.();
+                    confirm();
+                  }}
+              >
+                Reset
+              </Button>
+            </Space>
+          </div>
+      ),
+      onFilter: (value, record) => record?.selectedForInterview === value || (record?.selectedForInterview === undefined && value === false),
     },
     {
       title: 'Action',

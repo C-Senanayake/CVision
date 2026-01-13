@@ -9,6 +9,7 @@ class Job(BaseModel):
     jobName: str
     jobDescription: Optional[str] = None
     division: str
+    selectionMark: float
     criteria: Optional[object] = None
     isDeleted: bool = False
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -19,6 +20,7 @@ class Job(BaseModel):
                 "jobName": "Software Engineer Intern",
                 "jobDescription": "",
                 "division": "Software",
+                "selectionMark": 70,
                 "criteria": {
                     "A/L": 0.1,
                     "GPA": 0.3,
@@ -31,6 +33,7 @@ class JobBase(BaseModel):
     jobName: str
     jobDescription: Optional[str] = None
     division: str
+    selectionMark: float
     criteria: Optional[object] = None
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updatedAt: Optional[datetime] = None
@@ -40,6 +43,7 @@ class JobBase(BaseModel):
                 "jobName": "Software Engineer Intern",
                 "jobDescription": "",
                 "division": "Software",
+                "selectionMark": 70,
                 "criteria": {
                     "A/L": 0.1,
                     "GPA": 0.3,
@@ -52,6 +56,7 @@ class JobCreate(BaseModel):
     jobName: str
     jobDescription: Optional[str] = None
     division: str
+    selectionMark: float
     criteria: Optional[object] = None
     isDeleted: bool = False
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -63,6 +68,7 @@ class JobCreate(BaseModel):
                 "jobName": "Software Engineer Intern",
                 "jobDescription": "",
                 "division": "Software",
+                "selectionMark": 70,
                 "criteria": {
                     "A/L": 0.1,
                     "GPA": 0.3,

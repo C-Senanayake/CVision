@@ -139,7 +139,7 @@ const Jobs: React.FC = () => {
       key: 'action',
       render: (_, record) => (
         <>
-          <Tooltip title="Delete Job">
+          <Tooltip title="Edit Job">
               <Button
                 type="link"
                 icon={<EditFilled />}
@@ -230,7 +230,7 @@ const Jobs: React.FC = () => {
           value={mode}
           block={true}
           size="large"
-          className="w-full absolute top-14 left-0"
+          className="w-full absolute top-14 left-0 z-10"
         />
         {mode === "Basic Info" ? <JobsFormEdit setOpen={setOpen} editData={editData} setEditData={setEditData}/>
          : <JobsFormCriteria setOpen={setOpen} editData={editData} setEditData={setEditData}/>}
