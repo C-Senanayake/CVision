@@ -367,7 +367,7 @@ const CV: React.FC = () => {
         }}
       />
       <Drawer
-        title="Add New Job"
+        title="Upload CV"
         closable={{ 'aria-label': 'Close Button' }}
         onClose={onClose}
         open={open==='add'}

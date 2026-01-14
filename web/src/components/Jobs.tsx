@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Table, Tag, Form, Input, Drawer, Tooltip, Segmented } from "antd";
-import { DeleteFilled, EditFilled } from "@ant-design/icons";
+import { DeleteFilled, EditFilled, EyeFilled } from "@ant-design/icons";
 import { fetchJob, deleteJob } from "../api";
 import type { FormProps, RadioChangeEvent, TableProps } from 'antd';
 import JobsForm from "./JobsForm";
@@ -139,6 +139,18 @@ const Jobs: React.FC = () => {
       key: 'action',
       render: (_, record) => (
         <>
+          <Tooltip title="View Job">
+            <Button
+              type="link"
+              icon={<EyeFilled />}
+              // loading={loadings[3]}
+              onClick={() => {
+                setOpen("view")
+                setEditData(record)
+                setMode("Basic Info")
+              }}
+            />
+          </Tooltip>
           <Tooltip title="Edit Job">
               <Button
                 type="link"
@@ -218,7 +230,7 @@ const Jobs: React.FC = () => {
         title="Edit Job"
         closable={{ 'aria-label': 'Close Button' }}
         onClose={onClose}
-        open={open==='edit'}
+        open={open==='edit' || open === 'view'}
         className="px-2"
         width={720}
       >
