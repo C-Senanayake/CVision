@@ -27,10 +27,10 @@ export const CVGitStats: FunctionComponent<FormEditProps> = ({ cvData }) => {
 		}) || [];
 
 	const total = data.reduce((sum, item) => sum + item.value, 0);
-	
-	const dataWithPercentage = data.map(item => ({
+
+	const dataWithPercentage = data.map((item) => ({
 		...item,
-		percentage: total > 0 ? ((item.value / total) * 100).toFixed(1) : 0
+		percentage: total > 0 ? ((item.value / total) * 100).toFixed(2	) : 0,
 	}));
 
 	const config = {
@@ -39,7 +39,9 @@ export const CVGitStats: FunctionComponent<FormEditProps> = ({ cvData }) => {
 		colorField: "type",
 		innerRadius: 0.6,
 		label: {
-			content: (item: any) => `${item.percentage}%`,
+			text: (datum: any) => {
+				return `${datum.data?.percentage || datum.percentage}%`;
+			},
 			style: {
 				fontWeight: "bold",
 			},
