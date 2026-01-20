@@ -19,6 +19,7 @@ export interface DataType {
   createdAt?: string;
   updatedAt?: string;
   id: string | undefined;
+  selectionMark: number
 }
 
 type FieldType = {

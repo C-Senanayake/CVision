@@ -37,6 +37,7 @@ const JobsFormEdit: React.FC<FormEditProps> = ({setOpen, editData, setEditData})
     division: editData?.division,
     jobName: editData?.jobName,
     jobDescription: editData?.jobDescription,
+    selectionMark: editData?.selectionMark || 0
   });
   const notification = useAtomValue(notificationApiAtom);
   const beforeUpload = (file:any) => {
