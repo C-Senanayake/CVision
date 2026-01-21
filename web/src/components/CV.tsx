@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Table, Tag, Form, Input, Drawer, Tooltip, Spin, Radio, Space } from "antd";
-import { DeleteFilled, EditFilled, EyeFilled } from "@ant-design/icons";
+import { DeleteFilled, EditFilled, EyeFilled, GithubFilled } from "@ant-design/icons";
 import { fetchCvs, deleteCv, generateMark } from "../api";
 import type { FormProps, TableProps } from 'antd';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import CVForm from "./CVForm";
 import { notificationApiAtom } from "../atoms";
 import { useAtomValue } from "jotai";
 import CVView from "./CVView";
+import { CVGitStats } from "./CVGitStats";
 
 export interface CVDataType {
   key?: string;
@@ -273,6 +274,18 @@ const CV: React.FC = () => {
                 }}
               />
           </Tooltip>
+          <Tooltip title="View Git Statistics">
+              <Button
+                type="link"
+                icon={<GithubFilled />}
+                disabled={!record.markGenerated}
+                // loading={loadings[3]}
+                onClick={() => {
+                  setOpen("view_git_stat")
+                  setEditData(record)
+                }}
+              />
+          </Tooltip>
           <Tooltip title="Edit CV">
               <Button
                 type="link"
@@ -354,7 +367,7 @@ const CV: React.FC = () => {
         }}
       />
       <Drawer
-        title="Add New Job"
+        title="Upload CV"
         closable={{ 'aria-label': 'Close Button' }}
         onClose={onClose}
         open={open==='add'}
@@ -382,6 +395,16 @@ const CV: React.FC = () => {
         width={"100%"}
       >
         <CVView data={editData}/>
+      </Drawer>
+      <Drawer
+        title="View Git Statistics"
+        closable={{ 'aria-label': 'Close Button' }}
+        onClose={onClose}
+        open={open==='view_git_stat'}
+        className="p-0"
+        width={"100%"}
+      >
+        <CVGitStats cvData={editData}/>
       </Drawer>
     </div>
   );

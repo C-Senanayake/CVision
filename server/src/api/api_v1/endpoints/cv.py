@@ -324,3 +324,10 @@ async def get_pdf(request: Request,
         raise HTTPException(status_code=404, detail="PDF not found")
     
     return FileResponse(path=pdf_file, filename=pdf_file.name, media_type='application/pdf')
+
+@router.get("/fetch_github")
+async def fetch_github(request: Request, id: str):
+    print(id)
+    githubData = cv_model.get_github_data(request, id)
+    print(githubData)
+    return githubData
