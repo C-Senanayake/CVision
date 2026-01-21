@@ -16,6 +16,8 @@ from bs4 import BeautifulSoup
 from fastapi.responses import FileResponse
 from config.config import settings
 import logging
+import re
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +75,77 @@ async def enrich_cv_with_github(cv_id: str, resume_content: dict) -> Optional[di
         logger.error(f"Error enriching CV {cv_id} with GitHub data: {str(e)}")
         return None
 
+def clean_links(raw_links: set[str]) -> list[str]:
+    cleaned = set()
+    for link in raw_links:
+        link = link.strip().replace("\n", "").replace(" ", "")
+        cleaned.add(link)
+    return list(cleaned)
+
+def classify_links(links: list[str]) -> dict:
+    result = {
+        "profiles": {
+            "github": [],
+            "linkedin": [],
+            "medium": [],
+            "website": []
+        },
+        "github_repos": [],
+        "certificates": [],
+        "emails": [],
+        "others": []
+    }
+
+    for link in links:
+        if link.startswith("mailto:"):
+            result["emails"].append(link)
+            continue
+
+        parsed = urlparse(link)
+        domain = parsed.netloc.lower()
+        path_parts = parsed.path.strip("/").split("/")
+
+        # ---------- GitHub ----------
+        if domain == "github.com":
+            if len(path_parts) == 1:
+                # GitHub profile
+                result["profiles"]["github"].append(link)
+            elif len(path_parts) >= 2:
+                # GitHub repository
+                result["github_repos"].append(link)
+            continue
+
+        # ---------- LinkedIn ----------
+        if "linkedin.com" in domain:
+            if path_parts and path_parts[0] == "in":
+                result["profiles"]["linkedin"].append(link)
+            else:
+                result["others"].append(link)
+            continue
+
+        # ---------- Medium ----------
+        if "medium.com" in domain:
+            result["profiles"]["medium"].append(link)
+            continue
+
+        # ---------- Certificates ----------
+        if any(d in domain for d in ["hackerrank.com", "coursera.org", "udemy.com", "linkedin.com/learning"]):
+            result["certificates"].append(link)
+            continue
+
+        if "drive.google.com" in domain:
+            result["certificates"].append(link)
+            continue
+
+        # ---------- Personal website ----------
+        if domain and not domain.endswith(("github.com", "linkedin.com", "medium.com")):
+            result["profiles"]["website"].append(link)
+            continue
+
+        result["others"].append(link)
+
+    return result
+
 @router.post("/upload_cv")
 async def upload_cv(
     request: Request,
@@ -91,10 +164,22 @@ async def upload_cv(
                 file_path = UPLOAD_DIR / f"{new_pdf_id}_{file.filename}"
                 with open(file_path, "wb") as f:
                     shutil.copyfileobj(file.file, f)
-                
+
+                import pdfplumber
+                links = set()
+                with pdfplumber.open(file_path) as pdf:
+                    for page in pdf.pages:
+                        if page.hyperlinks:
+                            for link in page.hyperlinks:
+                                if link.get("uri"):
+                                    links.add(link["uri"])
+
+                cleaned_links = clean_links(links)
+                classified_links = classify_links(cleaned_links)
+#                 print("CLASSIFIED:::",classified_links)
                 # Extract CV content
-                extract = await gemini_extractor.extract_and_structure_pdf(f"{new_pdf_id}_{file.filename}")
-                
+                extract = await gemini_extractor.extract_and_structure_pdf(f"{new_pdf_id}_{file.filename}", classified_links)
+
                 # Automatically enrich with GitHub data
                 github_data = await enrich_cv_with_github(str(new_pdf_id), extract)
                 

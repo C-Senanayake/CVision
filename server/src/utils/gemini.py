@@ -8,7 +8,7 @@ class GeminiPDFExtractor:
     def __init__(self):
         self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-    async def extract_and_structure_pdf(self, pdf_file_name:str) -> dict:
+    async def extract_and_structure_pdf(self, pdf_file_name:str, links: dict) -> dict:
           """Extract and structure PDF content into JSON"""
 
           base_dir = os.path.dirname(os.path.abspath(__file__)) 
@@ -18,90 +18,169 @@ class GeminiPDFExtractor:
           # Upload PDF to Gemini
           pdf_file = self.client.files.upload(file=file_path)
 
-          prompt = """
+          prompt = f"""
           Analyze this PDF CV/Resume and extract structured data in JSON format.
 
           Return a JSON object with this exact structure:
-          {
-              "personal_info": {
+          {{
+              "personal_info": {{
                     "name": "Full name",
                     "email": "email address",
                     "phone": "phone number",
                     "address": "address",
-                    "linkedin": "LinkedIn URL", //If can extract the URL, extract it
-                    "website": "personal website", //If can extract the URL, extract it
-                    "github": "Github URL", //If can extract the URL, extract it
-                    "medium": "Medium URL" //If can extract the URL, extract it
-              },
+                    "linkedin": "LinkedIn URL",
+                    "website": "personal website",
+                    "github": "Github URL",
+                    "medium": "Medium URL"
+              }},
               "professional_summary": "Summary text",
               "work_experience": [
-                    {
+                    {{
                         "company": "Company name",
                         "position": "Job title",
                         "start_date": "Start date",
                         "end_date": "End date or 'Present'",
                         "description": "Job description",
                         "achievements": ["Achievement 1", "Achievement 2"]
-                    }
+                    }}
               ],
               "education": [
-                    {
+                    {{
                         "institution": "University name",
                         "degree": "Degree type",
                         "field": "Field of study",
                         "graduation_year": "Year",
                         "gpa": "GPA if available",
                         "class": "Class achieved"
-                    },
-                    {
+                    }},
+                    {{
                         "institution": "School/College",
                         "results": "A/L results",
                         "year": "Year"
-                    }
+                    }}
               ],
-              "skills": {
+              "skills": {{
                     "technical_skills": ["Skill 1", "Skill 2"],
                     "soft_skills": ["Skill 1", "Skill 2"],
                     "languages": ["Language 1", "Language 2"]
-              },
+              }},
               "certifications": ["Cert 1", "Cert 2"],
               "projects": [
-                    {
+                    {{
                         "name": "Project name",
                         "description": "Project description",
                         "technologies": ["Tech 1", "Tech 2"],
                         "repository": "Repository URL", //If the correct url for the repository given, extract it
                         "url": "Live URL"
-                    }
+                    }}
               ],
               "researchs and publications": [
-                    {
+                    {{
                          "name": "Research/publication name",
                          "duration": "Duration",
                          "key_areas": "Key Areas",
                          "Achievements": "Achievements,
                          "Links": "Attached link with description"
-                    }
+                    }}
               ],
               "interest": "["Interests 1", "Interests 2"]",
               "volunteer": "["Volunteering 1", "Volunteering 2"]",
               "achievements": ["Achievement 1", "Achievement 2"]
-              "references": [{
+              "references": [{{
                     "name": "Name",
                     "position": "Position",
                     "email": "Email address",
                     "phone_number": "Mobile Number",
-              }]
-          }
+              }}]
+          }}
 
-          Extract only information that is explicitly present in the CV. Use empty strings or arrays for missing information.
+          EXTRACTED_HYPERLINKS: **{links}**
+
+          ====================
+          MANDATORY RULES
+          ====================
+
+          GENERAL:
+          - Use ONLY values explicitly present in the uploaded pdf and EXTRACTED_HYPERLINKS.
+          - NEVER invent, infer, normalize, trim, or modify any URL.
+          - NEVER output labels, placeholders, or non-URL strings.
+          - If a value cannot be confidently mapped, return "" or [].
+          - Output ONLY valid JSON. No explanations.
+          - Do not use hyperlinks extracted by you. Only use the urls in the EXTRACTED_HYPERLINKS. If you extracted hyperlinks/ urls, replace them from the mapping hyperlink/url from EXTRACTED_HYPERLINKS
+
+          ====================
+          PROFILE MAPPING RULES (STRICT)
+          ====================
+
+          - GitHub profile:
+            - Use the FIRST value from:
+              EXTRACTED_HYPERLINKS.profiles.github
+            - If empty → ""
+
+          - LinkedIn profile:
+            - Use the FIRST value from:
+              EXTRACTED_HYPERLINKS.profiles.linkedin
+            - If empty → ""
+
+          - Medium profile:
+            - Use the FIRST value from:
+              EXTRACTED_HYPERLINKS.profiles.medium
+            - If empty → ""
+
+          - Website:
+            - Use the FIRST value from:
+              EXTRACTED_HYPERLINKS.profiles.website
+            - If empty → ""
+
+          - DO NOT use repository links for profile fields
+          - DO NOT use certificate links for profile fields
+
+          ====================
+          PROJECT REPOSITORY MAPPING
+          ====================
+
+          For each project extracted from CV_TEXT:
+
+          - Populate "repository" ONLY using:
+            EXTRACTED_HYPERLINKS.github_repos
+
+          - Repository selection rules:
+            - Repository name must clearly align with the project name.
+            - Prefer repositories owned by the same user as the GitHub profile.
+            - If exactly ONE clear match exists → use it.
+            - If zero or multiple matches exist → "".
+
+          - NEVER derive or construct repository URLs.
+          - NEVER use profile URLs as repositories.
+
+          ====================
+          CERTIFICATE MAPPING
+          ====================
+
+          - Populate "certificates" using ALL values from:
+            EXTRACTED_HYPERLINKS.certificates and EXTRACTED_HYPERLINKS.others
+          - Do NOT merge or deduplicate unless explicitly identical.
+
+          ====================
+          FINAL VALIDATION (MANDATORY)
+          ====================
+
+          Before returning output:
+          - All URLs must start with "http://" or "https://" or "mailto:".
+          - Profile fields MUST contain profile URLs only.
+          - Repository fields MUST contain repository URLs only.
+          - No field may contain labels like "GitHub", "LinkedIn", or "Portfolio".
+
+          Extract ONLY information explicitly present.
+
+          Output ONLY the JSON object. No explanations, no comments, no extra text.
           """
         
           response = self.client.models.generate_content(
                model="gemini-2.0-flash",
                contents=[prompt, pdf_file]
           )
-      #     print("TEXT:::",response.text)
+#           print("TEXT:::",response.text)
           # Clean up the response to extract JSON
           response_text = response.text.strip()
 
@@ -111,7 +190,7 @@ class GeminiPDFExtractor:
 
           if json_start != -1 and json_end != -1:
               json_text = response_text[json_start:json_end]
-            #   print("JSON::",json_text)
+#               print("JSON::", json.loads(json_text))
               return json.loads(json_text)
           else:
               raise ValueError("Could not extract valid JSON from response")
@@ -138,21 +217,21 @@ class GeminiPDFExtractor:
             activity_stats = stats.get("activity", {}) if stats else {}
             
             github_summary = f"""
-GitHub Profile Analysis:
-- Username: {profile.get('username', 'N/A')}
-- Account Age: {stats.get('account_age_years', 0)} years
-- Total Public Repositories: {repo_stats.get('total_repositories', 0)}
-- Original Repositories (not forks): {repo_stats.get('total_original_repos', 0)}
-- Total Stars Received: {repo_stats.get('total_stars', 0)}
-- Total Forks: {repo_stats.get('total_repository_forks', 0)}
-- Followers: {profile.get('followers', 0)}
-- Primary Programming Language: {lang_stats.get('primary_language', 'N/A')}
-- Total Languages Used: {lang_stats.get('total_languages', 0)}
-- Recent Activity: {'Active in last 30 days' if activity_stats.get('is_active') else 'Inactive'}
-- Top Repositories: {', '.join([f"{repo['name']} ({repo['stars']} stars)" for repo in repo_stats.get('top_repositories', [])[:3]])}
-- Location: {profile.get('location', 'N/A')}
-- Bio: {profile.get('bio', 'N/A')}
-"""
+                GitHub Profile Analysis:
+                - Username: {profile.get('username', 'N/A')}
+                - Account Age: {stats.get('account_age_years', 0)} years
+                - Total Public Repositories: {repo_stats.get('total_repositories', 0)}
+                - Original Repositories (not forks): {repo_stats.get('total_original_repos', 0)}
+                - Total Stars Received: {repo_stats.get('total_stars', 0)}
+                - Total Forks: {repo_stats.get('total_repository_forks', 0)}
+                - Followers: {profile.get('followers', 0)}
+                - Primary Programming Language: {lang_stats.get('primary_language', 'N/A')}
+                - Total Languages Used: {lang_stats.get('total_languages', 0)}
+                - Recent Activity: {'Active in last 30 days' if activity_stats.get('is_active') else 'Inactive'}
+                - Top Repositories: {', '.join([f"{repo['name']} ({repo['stars']} stars)" for repo in repo_stats.get('top_repositories', [])[:3]])}
+                - Location: {profile.get('location', 'N/A')}
+                - Bio: {profile.get('bio', 'N/A')}
+            """
         
         guidance_section = {
             "A/L or Advanced Level Results": "This mainly has 3 subjects which are considered as the main subjects. Best result for a subject is 'A', next 'B', 'C', 'S' and the lowest is 'F'. Consider district and island ranks also. (having an island rank above 300 or a district rank above 100 can be considered as a good result",

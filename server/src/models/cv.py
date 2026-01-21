@@ -14,7 +14,7 @@ class CvModel():
           return request.app.db[self.collection]
      
      def fetch_cvs(self, request: Request, filter_dict: Optional[dict] = None) -> Cv:
-          cvs = list(self.get_collection(request).find(filter_dict))
+          cvs = list(self.get_collection(request).find(filter_dict).sort({"createdAt": -1}))
           for cv in cvs:
                cv["id"] = str(cv["_id"]) 
                del cv["_id"]
