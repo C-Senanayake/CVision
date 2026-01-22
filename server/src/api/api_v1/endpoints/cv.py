@@ -18,6 +18,7 @@ from config.config import settings
 import logging
 import re
 from urllib.parse import urlparse
+import pdfplumber
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +166,7 @@ async def upload_cv(
                 with open(file_path, "wb") as f:
                     shutil.copyfileobj(file.file, f)
 
-                import pdfplumber
+
                 links = set()
                 with pdfplumber.open(file_path) as pdf:
                     for page in pdf.pages:
@@ -210,9 +211,19 @@ async def upload_cv(
 
                             with zip_ref.open(member) as source, open(new_file_path, "wb") as target:
                                 shutil.copyfileobj(source, target)
-                            
+
+                            links = set()
+                            with pdfplumber.open(new_file_path) as pdf:
+                                for page in pdf.pages:
+                                    if page.hyperlinks:
+                                        for link in page.hyperlinks:
+                                            if link.get("uri"):
+                                                links.add(link["uri"])
+
+                            cleaned_links = clean_links(links)
+                            classified_links = classify_links(cleaned_links)
                             # Extract CV content
-                            extract = await gemini_extractor.extract_and_structure_pdf(new_filename)
+                            extract = await gemini_extractor.extract_and_structure_pdf(new_filename, classified_links)
                             
                             # Automatically enrich with GitHub data
                             github_data = await enrich_cv_with_github(str(new_pdf_id), extract)
