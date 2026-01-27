@@ -317,9 +317,9 @@ async def generate_mark(request: Request, data: List[dict] = Body(...)):
                 github_data
             )
             total_mark = sum(item["mark"] for item in generated_marks.values())
-            updated_cv = cv_model.update(request, "_id", ObjectId(cv.get("id")), {"comparisonResults": generated_marks, "markGenerated": True, "finalMark": total_mark, "selectedForInterview": total_mark >= job_data['selectionMark']})
-            if updated_cv:
-                return 
+            cv_model.update(request, "_id", ObjectId(cv.get("id")), {"comparisonResults": generated_marks, "markGenerated": True, "finalMark": total_mark, "selectedForInterview": total_mark >= job_data['selectionMark']})
+            
+        return 
     except Exception as e:
         print("Error updating cv:", e)
         raise HTTPException(status_code=400, detail="Error updating cv")

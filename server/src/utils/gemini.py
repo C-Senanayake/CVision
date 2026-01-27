@@ -240,7 +240,7 @@ class GeminiPDFExtractor:
             "Work Experience": "Details of previous employment, including roles, responsibilities, and achievements.",
             "Skills": "Technical and soft skills relevant to the job description.",
             "Certifications": "Relevant certifications that enhance the candidate's qualifications for the job.",
-            "GitHub": "GitHub profile showing coding activity, open-source contributions, and technical expertise. Consider: account age, number of repositories, stars received, primary languages, activity level, and quality of projects. Active contributors with original repositories and stars show strong technical engagement. For scoring: 2+ years account age with 10+ original repos and 20+ stars = strong (70-100% of max), 1-2 years with 5-10 repos and 5-20 stars = moderate (40-70% of max), <1 year with <5 repos and <5 stars = weak (0-40% of max). Consider activity (active in last 30 days = bonus) and language match with job requirements."
+            "GitHub": "GitHub profile showing coding activity, open-source contributions, and technical expertise. Consider: account age, number of repositories,primary languages, activity level, and quality of projects. Active contributors with original repositories show strong technical engagement. For scoring: 2+ years account age with 10+ original repos = strong (70-100% of max), 1-2 years with 5-10 repos = moderate (40-70% of max), <1 year with <5 repos = weak (0-40% of max). Consider activity (active in last 30 days = bonus) and language match with job requirements."
         }
         prompt_template = f"""
             You are an expert technical recruiter evaluating resumes for the position of **{job_name}** in the **{division}** division.
@@ -259,7 +259,7 @@ class GeminiPDFExtractor:
             - Give a *mark between 0 and the maximum* for each.
             - Give a **mark fraction** for each and save the mark_fraction in the object as **mark/maximum mark in criteria**.
             - Provide a *one-sentence explanation* for each mark explaining why that score was given.
-            - **For GitHub criterion**: If GitHub data is available, evaluate based on account age, repositories, stars, activity, languages, and relevance to the job. If no GitHub data is available, give 0 marks with explanation "No GitHub profile data available."
+            - **For GitHub criterion**: If GitHub data is available, evaluate based on account age, repositories, activity, languages, and relevance to the job. If no GitHub data is available, give 0 marks with explanation "No GitHub profile data available."
             - **Do NOT** give marks for `LinkedIn` (skip it entirely or add with mark 0/maximum and description "Not generating mark for LinkedIn").
             - Be consistent and fair in marking.
             - Use the “guidance section” to understand what good or poor performance looks like for each criterion.
