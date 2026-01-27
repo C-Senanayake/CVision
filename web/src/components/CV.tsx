@@ -95,10 +95,11 @@ const CV: React.FC = () => {
       key: 'jobName',
       render: (text) => (text),
       sorter: (a, b) => a.jobName.localeCompare(b.jobName),
-      filters: allCVs?.map(cv => ({
-        text: cv.jobName,
-        value: cv.jobName
-      })),
+      filters: Array.from(new Set(allCVs?.map(cv => cv.jobName)))
+        .map(jobName => ({
+          text: jobName,
+          value: jobName
+        })),
       onFilter: (value, record) => record.jobName.indexOf(value as string) === 0,
     },
     {
