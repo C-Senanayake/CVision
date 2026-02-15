@@ -16,6 +16,8 @@ class Cv(BaseModel):
     markGenerated: Optional[bool] = False
     finalMark: Optional[float] = 0.0
     selectedForInterview: Optional[bool] = False
+    mailStatus: Optional[str] = None
+    interviewEvent: Optional[object] = None
     isDeleted: bool = False
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updatedAt: Optional[datetime] = None
@@ -29,6 +31,13 @@ class Cv(BaseModel):
                 "division": "Software",
                 "resumeContent": {
                     "Name": "Chamath"
+                },
+                "interviewEvent": {
+                    "interviewName": "Technical Interview",
+                    "interviewLocation": "https://maps.app.goo.gl/DT9BJrpEjN6CoyxW7",
+                    "interviewAttendees": ["chamath@example.com", "hr@example.com"],
+                    "interviewStartDatetime": "2026-02-20T14:00:00",
+                    "interviewEndDatetime": "2026-02-20T15:00:00"
                 },
                 "isDeleted": False
             }
@@ -56,6 +65,8 @@ class cvCreate(BaseModel):
     comparisonResults: Optional[object] = None
     finalMark: Optional[float] = 0.0
     selectedForInterview: Optional[bool] = False
+    mailStatus: Optional[str] = None
+    interviewEvent: Optional[object] = None
     markGenerated: Optional[bool] = False
     isDeleted: bool = False
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

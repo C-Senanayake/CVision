@@ -231,7 +231,7 @@ const Jobs: React.FC = () => {
         title="Edit Job"
         closable={{ 'aria-label': 'Close Button' }}
         onClose={onClose}
-        open={open==='edit' || open === 'view'}
+        open={open==='edit'}
         className="px-2"
         width={720}
       >
@@ -247,6 +247,27 @@ const Jobs: React.FC = () => {
         />
         {mode === "Basic Info" ? <JobsFormEdit setOpen={setOpen} editData={editData} setEditData={setEditData}/>
          : <JobsFormCriteria setOpen={setOpen} editData={editData} setEditData={setEditData}/>}
+      </Drawer>
+      <Drawer
+        title="View Job"
+        closable={{ 'aria-label': 'Close Button' }}
+        onClose={onClose}
+        open={open === 'view'}
+        className="px-2"
+        width={720}
+      >
+        <Segmented<string>
+          options={['Basic Info', 'Criteria']}
+          onChange={(value:string) => {
+            setMode(value as 'Basic Info' | 'Criteria')
+          }}
+          value={mode}
+          block={true}
+          size="large"
+          className="w-full absolute top-14 left-0 z-10"
+        />
+        {mode === "Basic Info" ? <JobsFormEdit setOpen={setOpen} editData={editData} setEditData={setEditData} viewOnly={true}/>
+         : <JobsFormCriteria setOpen={setOpen} editData={editData} setEditData={setEditData} viewOnly={true}/>}
       </Drawer>
     </div>
   );

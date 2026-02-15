@@ -13,12 +13,14 @@ from typing import List, Union, Dict, Any, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel, EmailStr, Field
 from bs4 import BeautifulSoup
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from config.config import settings
 import logging
 import re
 from urllib.parse import urlparse
 import pdfplumber
+from utils.mailing.email_templates import send_cv_received_email
+from utils.excel_extraction import create_cv_excel
 
 logger = logging.getLogger(__name__)
 
@@ -158,44 +160,73 @@ async def upload_cv(
     gemini_extractor = GeminiPDFExtractor()
     if files is None or len(files) == 0:
         raise HTTPException(status_code=400, detail="No files uploaded")
+    
+    successful_cvs = []
+    failed_cvs = []
+    
     try:
         for file in files:
             if file.filename.endswith(".pdf"):
-                new_pdf_id = cv_model.create_cv(request, {"cvName":file.filename, "division": division, "jobName": jobName, "jobId": id, "selectedForInterview": False, "isDeleted": False, "comparisonResults": {}, "markGenerated": False, "finalMark": 0.0, "createdAt": datetime.now(timezone.utc)})
-                file_path = UPLOAD_DIR / f"{new_pdf_id}_{file.filename}"
-                with open(file_path, "wb") as f:
-                    shutil.copyfileobj(file.file, f)
+                try:
+                    new_pdf_id = cv_model.create_cv(request, {"cvName":file.filename, "division": division, "jobName": jobName, "jobId": id, "selectedForInterview": False, "isDeleted": False, "comparisonResults": {}, "markGenerated": False, "finalMark": 0.0, "createdAt": datetime.now(timezone.utc)})
+                    file_path = UPLOAD_DIR / f"{new_pdf_id}_{file.filename}"
+                    with open(file_path, "wb") as f:
+                        shutil.copyfileobj(file.file, f)
 
 
-                links = set()
-                with pdfplumber.open(file_path) as pdf:
-                    for page in pdf.pages:
-                        if page.hyperlinks:
-                            for link in page.hyperlinks:
-                                if link.get("uri"):
-                                    links.add(link["uri"])
+                    links = set()
+                    with pdfplumber.open(file_path) as pdf:
+                        for page in pdf.pages:
+                            if page.hyperlinks:
+                                for link in page.hyperlinks:
+                                    if link.get("uri"):
+                                        links.add(link["uri"])
 
-                cleaned_links = clean_links(links)
-                classified_links = classify_links(cleaned_links)
-#                 print("CLASSIFIED:::",classified_links)
-                # Extract CV content
-                extract = await gemini_extractor.extract_and_structure_pdf(f"{new_pdf_id}_{file.filename}", classified_links)
+                    cleaned_links = clean_links(links)
+                    classified_links = classify_links(cleaned_links)
+                    # Extract CV content
+                    extract = await gemini_extractor.extract_and_structure_pdf(f"{new_pdf_id}_{file.filename}", classified_links)
 
-                # Automatically enrich with GitHub data
-                github_data = await enrich_cv_with_github(str(new_pdf_id), extract)
-                
-                # Update CV with extracted content and GitHub data
-                update_data = {
-                    "candidateName": extract.get("personal_info", {}).get("name") or "",
-                    "resumeContent": extract
-                }
-                if github_data:
-                    update_data["githubData"] = github_data
-                
-                update_pdf = cv_model.update(request, "_id", ObjectId(new_pdf_id), update_data)
+                    # Automatically enrich with GitHub data
+                    github_data = await enrich_cv_with_github(str(new_pdf_id), extract)
+                    
+                    # Update CV with extracted content and GitHub data
+                    update_data = {
+                        "candidateName": extract.get("personal_info", {}).get("name") or "",
+                        "resumeContent": extract
+                    }
+                    if github_data:
+                        update_data["githubData"] = github_data
+                    
+                    # Send CV received email
+                    try:
+                        candidate_email = extract.get("personal_info", {}).get("email") or ""
+                        candidate_name = extract.get("personal_info", {}).get("name") or ""
+                        if candidate_email:
+                            await send_cv_received_email(
+                                recipient_email=candidate_email,
+                                candidate_name=candidate_name,
+                                position=jobName,
+                                cc_emails=[]
+                            )
+                            logger.info(f"CV received email sent to {candidate_email}")
+                            update_data["mailStatus"] = "received_email_sent"
+                    except Exception as email_error:
+                        logger.error(f"Failed to send CV received email: {email_error}")
+                        # Don't fail the CV processing if email fails
+
+                    update_pdf = cv_model.update(request, "_id", ObjectId(new_pdf_id), update_data)
+                    await generate_mark(request, [update_pdf])
+                    
+                    
+                    successful_cvs.append(file.filename)
+                except Exception as e:
+                    failed_cvs.append({"filename": file.filename, "error": str(e)})
+                    print(f"Error processing {file.filename}: {e}")
 
             elif file.filename.endswith(".zip"):
                 # Save ZIP temporarily
+                count = 1
                 zip_path = UPLOAD_DIR / file.filename
                 with open(zip_path, "wb") as f:
                     shutil.copyfileobj(file.file, f)
@@ -204,51 +235,84 @@ async def upload_cv(
                 with zipfile.ZipFile(zip_path, "r") as zip_ref:
                     for member in zip_ref.namelist():
                         if member.lower().endswith(".pdf"):
-                            original_name = Path(member).stem
-                            new_pdf_id = cv_model.create_cv(request, {"cvName":f"{original_name}.pdf", "division": division, "jobName": jobName, "jobId": id, "isDeleted": False, "comparisonResults": {}, "markGenerated": False, "finalMark": 0.0,"createdAt": datetime.now(timezone.utc)})
-                            new_filename = f"{new_pdf_id}_{original_name}.pdf"
-                            new_file_path = UPLOAD_DIR / new_filename
+                            try:
+                                original_name = Path(member).stem
+                                print(f"Processing {original_name}::{count}")
+                                count += 1
+                                new_pdf_id = cv_model.create_cv(request, {"cvName":f"{original_name}.pdf", "division": division, "jobName": jobName, "jobId": id, "isDeleted": False, "comparisonResults": {}, "markGenerated": False, "finalMark": 0.0,"createdAt": datetime.now(timezone.utc)})
+                                new_filename = f"{new_pdf_id}_{original_name}.pdf"
+                                new_file_path = UPLOAD_DIR / new_filename
 
-                            with zip_ref.open(member) as source, open(new_file_path, "wb") as target:
-                                shutil.copyfileobj(source, target)
+                                with zip_ref.open(member) as source, open(new_file_path, "wb") as target:
+                                    shutil.copyfileobj(source, target)
 
-                            links = set()
-                            with pdfplumber.open(new_file_path) as pdf:
-                                for page in pdf.pages:
-                                    if page.hyperlinks:
-                                        for link in page.hyperlinks:
-                                            if link.get("uri"):
-                                                links.add(link["uri"])
+                                links = set()
+                                with pdfplumber.open(new_file_path) as pdf:
+                                    for page in pdf.pages:
+                                        if page.hyperlinks:
+                                            for link in page.hyperlinks:
+                                                if link.get("uri"):
+                                                    links.add(link["uri"])
 
-                            cleaned_links = clean_links(links)
-                            classified_links = classify_links(cleaned_links)
-                            # Extract CV content
-                            extract = await gemini_extractor.extract_and_structure_pdf(new_filename, classified_links)
-                            
-                            # Automatically enrich with GitHub data
-                            github_data = await enrich_cv_with_github(str(new_pdf_id), extract)
-                            
-                            # Update CV with extracted content and GitHub data
-                            update_data = {
-                                "candidateName": extract.get("personal_info", {}).get("name") or "",
-                                "resumeContent": extract
-                            }
-                            if github_data:
-                                update_data["githubData"] = github_data
-                            
-                            update_pdf = cv_model.update(request, "_id", ObjectId(new_pdf_id), update_data)
+                                cleaned_links = clean_links(links)
+                                classified_links = classify_links(cleaned_links)
+                                # Extract CV content
+                                extract = await gemini_extractor.extract_and_structure_pdf(new_filename, classified_links)
+                                
+                                # Automatically enrich with GitHub data
+                                github_data = await enrich_cv_with_github(str(new_pdf_id), extract)
+                                
+                                # Update CV with extracted content and GitHub data
+                                update_data = {
+                                    "candidateName": extract.get("personal_info", {}).get("name") or "",
+                                    "resumeContent": extract
+                                }
+                                if github_data:
+                                    update_data["githubData"] = github_data
+                                
+                                # Send CV received email
+                                try:
+                                    candidate_email = extract.get("personal_info", {}).get("email") or ""
+                                    candidate_name = extract.get("personal_info", {}).get("name") or ""
+                                    if candidate_email:
+                                        await send_cv_received_email(
+                                            recipient_email=candidate_email,
+                                            candidate_name=candidate_name,
+                                            position=jobName,
+                                            cc_emails=[]
+                                        )
+                                        logger.info(f"CV received email sent to {candidate_email}")
+                                        update_data["mailStatus"] = "received_email_sent"
+                                except Exception as email_error:
+                                    logger.error(f"Failed to send CV received email: {email_error}")
+                                    # Don't fail the CV processing if email fails
+
+                                update_pdf = cv_model.update(request, "_id", ObjectId(new_pdf_id), update_data)
+                                await generate_mark(request, [update_pdf])
+                                
+                                successful_cvs.append(f"{original_name}.pdf")
+
+                            except Exception as e:
+                                failed_cvs.append({"filename": f"{original_name}.pdf", "error": str(e)})
+                                print(f"Error processing {original_name}.pdf: {e}")
 
                 os.remove(zip_path)
 
             else:
                 raise HTTPException(status_code=400, detail="Only PDF or ZIP files are allowed.")
+        print(f"Successfully processed CVs: {successful_cvs}")
+        print(f"Failed CVs: {failed_cvs} : {len(failed_cvs)} out of {len(files)}")
         return {
             "statusCode": 200,
-            "message": "Files uploaded successfully"
+            "message": "Files processing completed",
+            "successful_cvs": successful_cvs,
+            "failed_cvs": failed_cvs,
+            "total_processed": len(successful_cvs),
+            "total_failed": len(failed_cvs)
         }
     except Exception as e:
         print("Error uploading pdf:", e)
-        raise HTTPException(status_code=400, detail="Error")
+        raise HTTPException(status_code=400, detail=str(e))
     
 @router.get("/fetch_cvs")
 async def fetch_cvs(request: Request, 
@@ -342,3 +406,59 @@ async def fetch_github(request: Request, id: str):
     githubData = cv_model.get_github_data(request, id)
     print(githubData)
     return githubData
+
+
+class ExportCVsRequest(BaseModel):
+    cv_ids: List[str] = Field(..., description="List of CV IDs to export")
+
+
+@router.post("/export_cvs_to_excel")
+async def export_cvs_to_excel(request: Request, export_request: ExportCVsRequest):
+    """
+    Export selected CVs to Excel file.
+    
+    Args:
+        export_request: Request containing list of CV IDs to export
+        
+    Returns:
+        StreamingResponse: Excel file download
+    """
+    try:
+        cv_ids = export_request.cv_ids
+        
+        if not cv_ids:
+            raise HTTPException(status_code=400, detail="No CV IDs provided")
+        
+        # Fetch CV data from database
+        cv_data_list = []
+        for cv_id in cv_ids:
+            try:
+                cv_data = cv_model.find(request, "_id", ObjectId(cv_id))
+                if cv_data:
+                    cv_data_list.append(cv_data)
+            except Exception as e:
+                logger.error(f"Error fetching CV {cv_id}: {e}")
+                continue
+        
+        if not cv_data_list:
+            raise HTTPException(status_code=404, detail="No CVs found for the provided IDs")
+        
+        # Create Excel file
+        excel_file = create_cv_excel(cv_data_list)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"CV_Export_{timestamp}.xlsx"
+        
+        # Return as downloadable file
+        return StreamingResponse(
+            excel_file,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exporting CVs to Excel: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export CVs: {str(e)}")

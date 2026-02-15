@@ -122,9 +122,9 @@ const JobsForm: React.FC<{setOpen?: (open:string | null)=>void}> = ({setOpen}) =
         <Input />
       </Form.Item>
       <Form.Item<FieldType>
-          label="Selection Mark"
+          label="Cutoff Mark"
           name="selectionMark"
-          rules={[{ required: true, message: 'Please input a selection mark!' }]}
+          rules={[{ required: true, message: 'Please input a cutoff mark!' }]}
       >
         <InputNumber />
       </Form.Item>

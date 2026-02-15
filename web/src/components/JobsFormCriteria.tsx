@@ -20,9 +20,10 @@ interface FormEditProps{
   setOpen: (open:string | null)=>void
   editData: DataType | null
   setEditData: (data:DataType | null)=>void
+  viewOnly?: boolean
 }
 
-const JobsFormCriteria: React.FC<FormEditProps> = ({setOpen, editData, setEditData}) => {
+const JobsFormCriteria: React.FC<FormEditProps> = ({setOpen, editData, setEditData, viewOnly}) => {
   const [totalPercentage, setTotalPercentage] = React.useState(0);
 
   const calculateTotal = () => {
@@ -86,6 +87,7 @@ const JobsFormCriteria: React.FC<FormEditProps> = ({setOpen, editData, setEditDa
       // wrapperCol={{ span: 24 }}
       onFinish={onFinish}
       className="w-full mt-8 flex flex-col"
+      disabled={viewOnly}
     >
       <Form.List name="criteria">
       {(fields, { add, remove }) => (
@@ -108,10 +110,10 @@ const JobsFormCriteria: React.FC<FormEditProps> = ({setOpen, editData, setEditDa
               >
                 <InputNumber style={{ width: '100%' }} min={0} max={100} step={1} placeholder="Criteria Percentage" onChange={calculateTotal}/>
               </Form.Item>
-              <MinusCircleOutlined onClick={() => {
+              {!viewOnly && <MinusCircleOutlined onClick={() => {
                 remove(name)
                 calculateTotal()
-              }}/>
+              }}/>}
             </div>
           ))}
           <div style={{ 
@@ -133,18 +135,18 @@ const JobsFormCriteria: React.FC<FormEditProps> = ({setOpen, editData, setEditDa
               {(totalPercentage).toFixed(1)}%
             </span>
           </div>
-          <Form.Item>
-            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+          {!viewOnly && <Form.Item>
+            <Button type="dashed" onClick={() => add()} disabled={totalPercentage === 100 || totalPercentage > 100} block icon={<PlusOutlined />}>
               Add criteria
             </Button>
-          </Form.Item>
+          </Form.Item>}
         </>
       )}
     </Form.List>
-      <div className="w-full p-2 flex flex-row justify-end">
+      {!viewOnly && <div className="w-full p-2 flex flex-row justify-end">
         <Form.Item  className="m-0">
           <Flex gap="small">
-            <Button type="primary" htmlType="submit" disabled={totalPercentage === 0}>
+            <Button type="primary" htmlType="submit" disabled={totalPercentage === 0 || totalPercentage !== 100}>
               Submit
             </Button>
             <Button danger disabled={totalPercentage === 0} onClick={() => {
@@ -155,7 +157,7 @@ const JobsFormCriteria: React.FC<FormEditProps> = ({setOpen, editData, setEditDa
             </Button>
           </Flex>
         </Form.Item>
-      </div>
+      </div>}
     </Form>
   );
 };

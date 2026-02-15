@@ -24,13 +24,14 @@ interface FormEditProps{
   setOpen: (open:string | null)=>void
   editData: DataType | null
   setEditData: (data:DataType | null)=>void
+  viewOnly?: boolean
 }
 
 Quill.register("formats/list", true);
 Quill.register("formats/bullet", true);
 Quill.register("formats/blockquote", true);
 
-const JobsFormEdit: React.FC<FormEditProps> = ({setOpen, editData, setEditData}) => {
+const JobsFormEdit: React.FC<FormEditProps> = ({setOpen, editData, setEditData, viewOnly}) => {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
   form.setFieldsValue({
@@ -116,6 +117,7 @@ const JobsFormEdit: React.FC<FormEditProps> = ({setOpen, editData, setEditData})
       onFinish={onFinish}
       labelCol={{ span: 6 }}
       className="w-full mt-8"
+      disabled={viewOnly}
     >
       <Form.Item
         name="division"
@@ -139,9 +141,9 @@ const JobsFormEdit: React.FC<FormEditProps> = ({setOpen, editData, setEditData})
         <Input disabled/>
       </Form.Item>
       <Form.Item<FieldType>
-          label="Selection Mark"
+          label="Cutoff Mark"
           name="selectionMark"
-          rules={[{ required: true, message: 'Please input a selection mark!' }]}
+          rules={[{ required: true, message: 'Please input a cutoff mark!' }]}
       >
         <InputNumber />
       </Form.Item>
@@ -162,9 +164,10 @@ const JobsFormEdit: React.FC<FormEditProps> = ({setOpen, editData, setEditData})
           theme="snow"
           placeholder="Type job description here..."
           style={{ minHeight: "200px" }}
+          readOnly={viewOnly}
         />
       </Form.Item>
-      <div className="w-full p-2 flex flex-row justify-end">
+      {!viewOnly && <div className="w-full p-2 flex flex-row justify-end">
         <Form.Item  className="m-0">
           <Flex gap="small">
             <Button type="primary" htmlType="submit">
@@ -175,7 +178,7 @@ const JobsFormEdit: React.FC<FormEditProps> = ({setOpen, editData, setEditData})
             </Button>
           </Flex>
         </Form.Item>
-      </div>
+      </div>}
     </Form>
   );
 };
