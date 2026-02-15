@@ -14,8 +14,8 @@ class Database:
                self.client = MongoClient(
                     self.db_uri,
                     serverSelectionTimeoutMS=5000,
-                    connectTimeoutMS=10000,
-                    socketTimeoutMS=10000,
+                    connectTimeoutMS=60000,
+                    socketTimeoutMS=60000,
                     maxPoolSize=10,
                     minPoolSize=1,
                     maxIdleTimeMS=30000 # Close idle connections after 30s
