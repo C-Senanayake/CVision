@@ -366,6 +366,7 @@ const CV: React.FC = () => {
             id: record.id,
           })
         }}
+        pagination={{pageSize: 50}}
       />
       <Drawer
         title="Upload CV"
