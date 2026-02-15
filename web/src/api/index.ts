@@ -152,3 +152,73 @@ export const fetchGitHubData = async (id: string | undefined) => {
     throw error;
   }
 }
+
+//Mailling
+export const sendSelectedMail = async (data: object[]) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api_v1/email/send-cv-selected-email`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Selection email failed", error);
+    throw error;
+  }
+};
+
+export const sendRejectedMail = async (data: object[]) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api_v1/email/send-cv-rejection-email`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Rejection email failed", error);
+    throw error;
+  }
+};
+
+export const sendInterviewScheduledMail = async (data: object) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api_v1/email/send-interview-scheduled-email`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Interview scheduled email failed", error);
+    throw error;
+  }
+};
+
+//excel
+export const exportCvsToExcel = async (cvIds: string[]) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/api_v1/cv/export_cvs_to_excel`,
+      { cv_ids: cvIds },
+      {
+        responseType: 'blob', // Important for file download
+      }
+    );
+    
+    // Create blob link to download
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Extract filename from Content-Disposition header or use default
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = 'CV_Export.xlsx';
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1];
+      }
+    }
+    
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+    return { success: true, message: 'Export successful' };
+  } catch (error) {
+    console.error("Export to Excel failed", error);
+    throw error;
+  }
+};
