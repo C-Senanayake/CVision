@@ -122,14 +122,6 @@ class GraphEmailService:
             body: Optional meeting description
             location: Optional meeting location
         """
-        # Map common timezone abbreviations to proper IANA timezone identifiers
-        timezone_map = {
-            "IST": "Asia/Colombo",  # Sri Lanka Time / India Standard Time
-            "UTC": "UTC"
-        }
-        
-        # Convert timezone if it's an abbreviation
-        proper_timezone = timezone_map.get(timezone, timezone)
         
         access_token = self.get_access_token()
         
@@ -147,12 +139,10 @@ class GraphEmailService:
                 "content": body or f"<p>You are invited to: {subject}</p>"
             },
             "start": {
-                "dateTime": start_datetime,
-                "timeZone": proper_timezone
+                "dateTime": start_datetime
             },
             "end": {
-                "dateTime": end_datetime,
-                "timeZone": proper_timezone
+                "dateTime": end_datetime
             },
             "location": {
                 "displayName": location
