@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Form, Flex, Input, DatePicker } from "antd";
+import { Button, Form, Flex, Input, DatePicker, Spin } from "antd";
 import dayjs from 'dayjs';
 import { sendInterviewScheduledMail } from "../api";
 import type { FormProps } from 'antd';
@@ -33,6 +33,7 @@ interface FormEditProps{
 const CVScheduleInterview: React.FC<FormEditProps> = ({setOpen, editData, setEditData}) => {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const [loading, setLoading] = React.useState(false)
   
   form.setFieldsValue({
     event: editData?.interviewEvent?.interviewName,
@@ -44,6 +45,7 @@ const CVScheduleInterview: React.FC<FormEditProps> = ({setOpen, editData, setEdi
   });
   const notification = useAtomValue(notificationApiAtom);
   const onFinish: FormProps<FieldType>['onFinish'] = async (values) => {
+    setLoading(true)
     
     const eventDateTime = form.getFieldValue('eventDateTime');
     const startDatetime = eventDateTime?.[0]?.add(5, 'hour')?.add(30, 'minute')?.toISOString();
@@ -72,60 +74,66 @@ const CVScheduleInterview: React.FC<FormEditProps> = ({setOpen, editData, setEdi
     finally{
       setOpen(null)
       setEditData(null)
+      setLoading(false)
     }
   };
   return (
-    <Form
-      form={form}
-      scrollToFirstError={{ behavior: 'instant', block: 'end', focus: true }}
-      onFinish={onFinish}
-      labelCol={{ span: 6 }}
-      className="w-full"
-    >
-      <Form.Item<FieldType>
-        label="Event"
-        name="event"
-        rules={[{ required: true, message: 'Please enter event name' }]}
+    <>
+      {loading && <div className="w-full h-full absolute top-0 left-0 bg-gray-200 opacity-50 z-10 flex justify-center items-center">
+          <Spin size="large"/>
+        </div>}
+      <Form
+        form={form}
+        scrollToFirstError={{ behavior: 'instant', block: 'end', focus: true }}
+        onFinish={onFinish}
+        labelCol={{ span: 6 }}
+        className="w-full"
       >
-        <Input placeholder="e.g. Technical Interview, HR Interview, etc."/>
-      </Form.Item>
-      <Form.Item<FieldType>
-        label="Location"
-        name="location"
-      >
-        <Input placeholder="e.g. Google maps location"/>
-      </Form.Item>
-      <Form.Item<FieldType>
-        label="Attendees"
-        name="attendees"
-      >
-        <Input placeholder="Enter additional attendee emails separated by commas"/>
-      </Form.Item>
-      <Form.Item<FieldType>
-        label="Event Date & Time"
-        name="eventDateTime"
-        rules={[{ required: true, message: 'Please select start and end date and time!' }]}
-      >
-        <RangePicker
-          showTime={{ format: 'HH:mm' }}
-          format="YYYY-MM-DD HH:mm"
-          style={{ width: '100%' }}
-          disabledDate={(current) => current && current < dayjs().startOf('day')}
-        />
-      </Form.Item>
-      <div className="w-full p-2 flex flex-row justify-end">
-        <Form.Item  className="m-0">
-          <Flex gap="small">
-            <Button type="primary" htmlType="submit">
-              Submit
-            </Button>
-            <Button danger onClick={() => form.resetFields()}>
-              Reset
-            </Button>
-          </Flex>
+        <Form.Item<FieldType>
+          label="Event"
+          name="event"
+          rules={[{ required: true, message: 'Please enter event name' }]}
+        >
+          <Input placeholder="e.g. Technical Interview, HR Interview, etc."/>
         </Form.Item>
-      </div>
-    </Form>
+        <Form.Item<FieldType>
+          label="Location"
+          name="location"
+        >
+          <Input placeholder="e.g. Google maps location"/>
+        </Form.Item>
+        <Form.Item<FieldType>
+          label="Attendees"
+          name="attendees"
+        >
+          <Input placeholder="Enter additional attendee emails separated by commas"/>
+        </Form.Item>
+        <Form.Item<FieldType>
+          label="Event Date & Time"
+          name="eventDateTime"
+          rules={[{ required: true, message: 'Please select start and end date and time!' }]}
+        >
+          <RangePicker
+            showTime={{ format: 'HH:mm' }}
+            format="YYYY-MM-DD HH:mm"
+            style={{ width: '100%' }}
+            disabledDate={(current) => current && current < dayjs().startOf('day')}
+          />
+        </Form.Item>
+        <div className="w-full p-2 flex flex-row justify-end">
+          <Form.Item  className="m-0">
+            <Flex gap="small">
+              <Button type="primary" htmlType="submit">
+                Submit
+              </Button>
+              <Button danger onClick={() => form.resetFields()}>
+                Reset
+              </Button>
+            </Flex>
+          </Form.Item>
+        </div>
+      </Form>
+    </>
   );
 };
 
